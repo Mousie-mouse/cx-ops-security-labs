@@ -15,7 +15,11 @@ if not token:
     raise SystemExit("Load SQUARE_ACCESS_TOKEN in this terminal first.")
 
 original = json.loads((DATA / "payment-request.json").read_text())
-first = json.loads((DATA / "first-response.json").read_text())["payment"]
+first_response = DATA / "first-response.json"
+if not first_response.exists():
+    first_response = DATA / "send-runs" / "first" / "response.json"
+
+first = json.loads(first_response.read_text())["payment"]
 
 # Keep the location and time window fixed across every page.
 start = datetime.fromisoformat(first["created_at"].replace("Z", "+00:00"))
