@@ -9,6 +9,7 @@ cases = [
     ("first", "payment-request.json"),
     ("retry", "payment-request.json"),
     ("conflict", "conflict-request.json"),
+    ("recovered", "lost-response-request.json"),
 ]
 
 original = json.loads((DATA / "payment-request.json").read_text())
@@ -27,6 +28,25 @@ with sqlite3.connect(DATA / "journal.sqlite3") as db:
             original["idempotency_key"],
             original["reference_id"],
             json.dumps(original, sort_keys=True),
+        ),
+    )
+
+
+    recovery_request = json.loads(
+        (DATA / "lost-response-request.json").read_text()
+    )
+
+    db.execute(
+        """
+        INSERT INTO operations
+            (idempotency_key, reference_id, original_request_json)
+        VALUES (?, ?, ?)
+        ON CONFLICT(idempotency_key) DO NOTHING
+        """,
+        (
+            recovery_request["idempotency_key"],
+            recovery_request["reference_id"],
+            json.dumps(recovery_request, sort_keys=True),
         ),
     )
 
