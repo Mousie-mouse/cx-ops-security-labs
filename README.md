@@ -13,6 +13,12 @@ Beyond security practice, I care about open technology, digital autonomy, privac
 
 This repository serves as a portfolio of labs, risk analyses, incident journals, and technical exercises that document my ongoing development in cybersecurity and systems operations.
 
+## API and systems labs
+
+### [Payment Retry Investigation Lab](payment-retry-lab/README.md)
+
+Python and SQLite investigation of Square Sandbox REST APIs: idempotent retries, conflicting parameters, recovery after discarding a response, concurrent requests, and cursor pagination. Includes a local evidence journal, five offline tests, and a [reproduction runbook](payment-retry-lab/RUNBOOK.md).
+
 # Incident response journals
 
 | Entry | Scenario | File |
