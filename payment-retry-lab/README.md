@@ -1,8 +1,6 @@
 # Demonstrating Payment Idempotency with Square Sandbox
 
-![Environment: Square Sandbox](https://img.shields.io/badge/Environment-Square_Sandbox-006AFF)
-![Focus: Systems and Operations](https://img.shields.io/badge/Focus-Systems_%26_Operations-7C3AED)
-![Verified run: 17 assertions passed](https://img.shields.io/badge/Verified_run-17_assertions_passed-15803D)
+**Environment:** Square Sandbox · **Focus:** Systems and operations
 
 **What happens when you submit the same payment request more than once?**
 
@@ -64,7 +62,7 @@ Postman was added to simplify repeat runs and provide a starting point for
 future projects. It reproduces the behavior first investigated with the
 Python scripts.
 
-## 📋 What the Postman run checks
+## What the Postman run checks
 
 For the saved $10 request:
 
