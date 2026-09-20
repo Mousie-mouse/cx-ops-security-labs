@@ -25,18 +25,18 @@ running the checks and recording the results for inspection.
 
 All payments are simulated in Square Sandbox. I used ChatGPT to help write
 the Python, SQLite, and Postman integration code. The emphasis is on
-systems understanding, investigation, and process design -- not the underlying code. 
+systems understanding, investigation, and process design.  
 
-## 📸 See the results
+## The results
 
 ![Terminal results showing successful retries and the expected rejection of a changed amount](docs/assets/postman-payment-retry.png)
 
-🟢 **Identical retry:** returned the same payment ID.  
-🟠 **Changed amount:** rejected with HTTP 400, as expected.  
-✅ **Verified run:** all 17 assertions passed.
+ **Identical retry:** returned the same payment ID.  
+ **Changed amount:** rejected with HTTP 400, as expected.  
+ **Verified run:** all 17 assertions passed.
 
 <details>
-<summary><strong>🟣 ▶ Watch the requests run — click to expand</strong></summary>
+<summary><strong> ▶ Watch the requests run — click to expand</strong></summary>
 
 The recording shows the saved request, identical retry, rejected amount
 change, and retrieval of the original payment.
@@ -91,75 +91,6 @@ count as another payment-submission attempt.
 Each new run records new attempts. Reimporting an unchanged named capture
 does not duplicate its database row. Earlier Postman runs made before the
 evidence integration are not included in the journal.
-
-## 🔎 Findings from the original investigation
-
-The original Python workflow also explored missing local responses,
-concurrent requests, and independent payment listing.
-
-| Scenario | Observed result |
-|---|---|
-| Initial $10 payment | HTTP 200, `COMPLETED` |
-| Identical sequential retry | HTTP 200, same payment ID |
-| Same key, amount changed to $11 | HTTP 400, `IDEMPOTENCY_KEY_REUSED` |
-| Successful response body deliberately discarded, then request retried | Completed payment details recovered |
-| Two synchronized client requests with the same key and parameters | Both HTTP 200, same completed payment ID |
-
-An independent paginated listing returned one distinct payment for each
-reference: `retry-lab-001`, `retry-lab-002`, and `retry-lab-003`, within the
-saved query's location and time window.
-
-### What to do when a payment's outcome is unclear
-
-If a payment response is missing, the question is: **did the payment fail,
-or did it succeed without the client receiving confirmation?**
-
-- **Keep the original request.** Save its idempotency key and payment
-  details before sending it, so you can retry the same operation.
-
-- **Retry without changing those details.** In this lab, sending the same
-  key and parameters returned the same payment ID. This behavior depends
-  on Square's idempotency retention policy; a key is not an indefinite
-  guarantee against duplicates.
-
-- **Investigate a rejected change.** If the amount changes while the key
-  stays the same, Square rejects the request. Giving it a new key can
-  create a separate payment—it does not recover the original payment.
-
-- **Check every page when listing payments.** The first page may not
-  contain all matching results. Count distinct payment IDs across all
-  pages within the relevant location and time window.
-
-- **Confirm that the evidence was saved.** Successful API checks and a
-  successful journal import are separate results. Check the import
-  summary before assuming the attempts are recorded in SQLite.
-
-In this lab, the original $10 payment succeeds before we test the retries.
-An identical retry succeeds again and returns the same payment ID.
-Changing the amount to $11 while keeping the original key produces the
-expected rejection: the key has already been used for different payment
-details.
-
-That rejection does not mean the original payment failed. It means the
-changed request conflicts with the operation already associated with the
-key. Other errors, such as invalid credentials or a missing response,
-require separate investigation and do not by themselves establish whether
-a payment was accepted.
-
-### Historical journal snapshot
-
-These counts describe the original investigation before the Postman
-integration. Subsequent journaled runs add attempts.
-
-| Operation reference | Recorded attempts | Distinct payment IDs observed |
-|---|---:|---:|
-| retry-lab-001 | 4 | 1 |
-| retry-lab-002 | 1 | 1 |
-| retry-lab-003 | 2 | 1 |
-
-The fourth attempt for `retry-lab-001` is a later replay through the
-reusable Python sender. The deliberately discarded response is not
-included in the journal.
 
 ## Scope and limitations
 
@@ -230,11 +161,11 @@ optional. Postman CLI is installed separately.
 
 ## References
 
-- [Square idempotency patterns](https://developer.squareup.com/docs/build-basics/common-api-patterns/idempotency)
-- [Square List Payments API](https://developer.squareup.com/reference/square/payments-api/list-payments)
-- [Square Sandbox payments](https://developer.squareup.com/docs/devtools/sandbox/payments)
-- [Idempotence explained](https://www.freecodecamp.org/news/idempotence-explained)
-- [Idempotent REST APIs](https://restfulapi.net/idempotent-rest-apis/)
+- [Square idempotency patterns](https://developer.squareup.com/docs/build-basics/common-api-patterns/idempotency) — how Square uses idempotency keys to handle repeated requests.
+- [Square List Payments API](https://developer.squareup.com/reference/square/payments-api/list-payments) — listing payments and following pagination to check recorded outcomes.
+- [Square Sandbox payments](https://developer.squareup.com/docs/devtools/sandbox/payments) — testing payment requests with simulated funds and test payment sources.
+- [Idempotence explained](https://www.freecodecamp.org/news/idempotence-explained) — background on what idempotence means and why repeated operations matter.
+- [Idempotent REST APIs](https://restfulapi.net/idempotent-rest-apis/) — how idempotency relates to HTTP methods and REST API behavior.
 
 - [Postman CLI collection commands](https://learning.postman.com/docs/postman-cli/postman-cli-collections/) — collection execution, environment files, timeouts, and reporting options.
 - [Postman CLI reporters](https://learning.postman.com/docs/postman-cli/postman-cli-reporters/) — JSON report export used by the evidence adapter.
