@@ -1,5 +1,9 @@
 # Demonstrating Payment Idempotency with Square Sandbox
 
+![Environment: Square Sandbox](https://img.shields.io/badge/Environment-Square_Sandbox-006AFF)
+![Focus: Systems and Operations](https://img.shields.io/badge/Focus-Systems_%26_Operations-7C3AED)
+![Verified run: 17 assertions passed](https://img.shields.io/badge/Verified_run-17_assertions_passed-15803D)
+
 **What happens when you submit the same payment request more than once?**
 
 I used simulated payments to investigate how an idempotency key connects
@@ -15,30 +19,33 @@ operations workflows.
 Using Python, Postman CLI, and SQLite, I built a repeatable process for
 running the checks and recording the results for inspection.
 
-> **A request attempt is not a payment.** Multiple attempts can refer to
-> one payment operation.
+> [!NOTE]
+> **A request attempt is not a payment.**
+> Multiple attempts can refer to one payment operation.
 
 All payments are simulated in Square Sandbox. I used ChatGPT to help write
 the Python, SQLite, and Postman integration code. The emphasis is on
 systems understanding, investigation, and process design -- not the underlying code. 
 
-## ▶ See the results
+## 📸 See the results
 
 ![Terminal results showing successful retries and the expected rejection of a changed amount](docs/assets/postman-payment-retry.png)
 
-The identical retry returned the same payment ID. Changing the amount
-while reusing the key produced the expected HTTP 400 rejection.
-All 17 assertions passed.
+🟢 **Identical retry:** returned the same payment ID.  
+🟠 **Changed amount:** rejected with HTTP 400, as expected.  
+✅ **Verified run:** all 17 assertions passed.
 
 <details>
-<summary>Watch the requests run</summary>
+<summary><strong>🟣 ▶ Watch the requests run — click to expand</strong></summary>
+
+The recording shows the saved request, identical retry, rejected amount
+change, and retrieval of the original payment.
 
 ![Postman CLI payment retry demonstration](docs/assets/postman-payment-retry.gif)
 
 </details>
 
 **Run it yourself:** follow the [runbook](RUNBOOK.md).
-
 
 ## How the lab works
 
