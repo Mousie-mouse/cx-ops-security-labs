@@ -19,6 +19,8 @@ reference: retry-lab-001, retry-lab-002, and retry-lab-003.
 
 ## SQLite evidence
 
+The table below is a historical snapshot from before the Postman integration; subsequent runs add attempts to the journal.
+
 | Operation reference | Recorded attempts | Distinct payment IDs observed |
 |---|---:|---:|
 | retry-lab-001 | 4 | 1 |
@@ -28,6 +30,39 @@ reference: retry-lab-001, retry-lab-002, and retry-lab-003.
 The fourth attempt for retry-lab-001 is the later replay through the reusable Python sender.
 The deliberately discarded response is not included in the journal.
 Reimporting the same named evidence does not create duplicate rows.
+
+## Postman CLI
+
+The lab includes a Postman CLI workflow to simplify future API runs and
+provide a starting point for other projects. It uses the same saved
+payment request as the Python sender and reproduces the previously
+observed behavior.
+
+The verified run passed 17 assertions across four requests: send the saved
+operation, retry it unchanged, reject a changed amount using the same key,
+and retrieve the original payment.
+
+The integration recorded three POST attempts in SQLite: two $10 requests
+returning the same payment ID and a rejected $11 request. The GET response
+was saved separately as supporting evidence. Earlier Postman runs made
+before this integration are not included in the journal.
+
+Each new run records new attempts. Reimporting an unchanged named capture
+does not duplicate its database row.
+
+Run `python3 postman_lab.py` to generate the collection without sending
+requests. With SQUARE_ACCESS_TOKEN loaded in the current shell, run
+`python3 postman_lab.py --run` to execute it and import the evidence.
+
+Captures are saved under data/postman-runs/. Request authorization headers
+are not retained in those captures. The full report and token environment
+file are temporary and removed on normal exit. An interruption before
+export can leave an evidence gap.
+
+![Postman CLI demonstration](docs/assets/postman-payment-retry.gif)
+
+[View the terminal screenshot](docs/assets/postman-payment-retry.png)
+
 
 ## Files
 

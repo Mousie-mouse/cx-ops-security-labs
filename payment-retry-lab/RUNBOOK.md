@@ -97,3 +97,30 @@ these experiments do not establish indefinite duplicate prevention.
 
 The conflict and discarded-response experiments are documented in the README.
 Their original captures were prepared manually and are not included in Git.
+
+## Postman CLI
+
+Requires Postman CLI on PATH; verified with version 1.59.0.
+
+Complete the Square Sandbox setup above first. From payment-retry-lab,
+run `python3 postman_lab.py` to generate the collection without sending
+requests.
+
+With SQUARE_ACCESS_TOKEN loaded in the current shell, run
+`python3 postman_lab.py --run`.
+
+The helper reuses data/payment-request.json and its saved idempotency key.
+A complete successful run passes 17 assertions, imports three POST attempts
+into SQLite, and saves the GET response separately. The changed amount's
+HTTP 400 is expected.
+
+Captures are saved under data/postman-runs/ in the directory printed by
+the helper. Check both the assertion results and the evidence-import
+summary: passing API checks alone does not confirm successful import.
+
+To reimport a saved POST capture without sending requests, use
+`python3 import_capture.py data/postman-runs/ACTUAL_RUN/ACTUAL_CAPTURE`.
+Use the actual directory names. Do not import the GET capture.
+
+Reimporting an unchanged capture adds no row. A new API run records new
+attempts. Interrupted runs may leave incomplete evidence.

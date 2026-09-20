@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "Payment Retry Investigation",
+    "description": "Square Sandbox checks using the Python lab's saved request. The first request creates or replays that operation. Captured POST responses are imported into the SQLite journal.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{square_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "payment_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 | Send saved operation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Square-Version",
+            "value": "2026-08-19"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://connect.squareupsandbox.com/v2/payments",
+        "body": {
+          "mode": "raw",
+          "raw": "{{saved_request}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const payment = pm.response.json().payment;",
+              "const expected = JSON.parse(pm.environment.get(\"saved_request\"));",
+              "",
+              "pm.test(\"Payment is COMPLETED\", () => {",
+              "    pm.expect(payment.status).to.eql(\"COMPLETED\");",
+              "});",
+              "pm.test(\"Amount and currency match the saved request\", () => {",
+              "    pm.expect(payment.amount_money).to.deep.eql(expected.amount_money);",
+              "});",
+              "pm.test(\"Location and reference match the saved request\", () => {",
+              "    pm.expect(payment.location_id).to.eql(expected.location_id);",
+              "    pm.expect(payment.reference_id).to.eql(expected.reference_id);",
+              "});",
+              "",
+              "pm.test(\"Payment ID is present\", () => {",
+              "    pm.expect(payment.id).to.be.a(\"string\").and.not.empty;",
+              "});",
+              "pm.collectionVariables.set(\"payment_id\", payment.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 | Identical retry returns the same payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Square-Version",
+            "value": "2026-08-19"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://connect.squareupsandbox.com/v2/payments",
+        "body": {
+          "mode": "raw",
+          "raw": "{{saved_request}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const payment = pm.response.json().payment;",
+              "const expected = JSON.parse(pm.environment.get(\"saved_request\"));",
+              "",
+              "pm.test(\"Payment is COMPLETED\", () => {",
+              "    pm.expect(payment.status).to.eql(\"COMPLETED\");",
+              "});",
+              "pm.test(\"Amount and currency match the saved request\", () => {",
+              "    pm.expect(payment.amount_money).to.deep.eql(expected.amount_money);",
+              "});",
+              "pm.test(\"Location and reference match the saved request\", () => {",
+              "    pm.expect(payment.location_id).to.eql(expected.location_id);",
+              "    pm.expect(payment.reference_id).to.eql(expected.reference_id);",
+              "});",
+              "",
+              "pm.test(\"Same payment ID as the first response\", () => {",
+              "    pm.expect(payment.id).to.eql(pm.collectionVariables.get(\"payment_id\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 | Changed amount is rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Square-Version",
+            "value": "2026-08-19"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://connect.squareupsandbox.com/v2/payments",
+        "body": {
+          "mode": "raw",
+          "raw": "{{conflict_request}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Conflicting amount is rejected\", () => {",
+              "    const errors = pm.response.json().errors;",
+              "    pm.expect(errors).to.be.an(\"array\");",
+              "    pm.expect(errors.map(error => error.code))",
+              "        .to.include(\"IDEMPOTENCY_KEY_REUSED\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 | Retrieve and verify the original payment",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Square-Version",
+            "value": "2026-08-19"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://connect.squareupsandbox.com/v2/payments/{{payment_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const payment = pm.response.json().payment;",
+              "const expected = JSON.parse(pm.environment.get(\"saved_request\"));",
+              "",
+              "pm.test(\"Payment is COMPLETED\", () => {",
+              "    pm.expect(payment.status).to.eql(\"COMPLETED\");",
+              "});",
+              "pm.test(\"Amount and currency match the saved request\", () => {",
+              "    pm.expect(payment.amount_money).to.deep.eql(expected.amount_money);",
+              "});",
+              "pm.test(\"Location and reference match the saved request\", () => {",
+              "    pm.expect(payment.location_id).to.eql(expected.location_id);",
+              "    pm.expect(payment.reference_id).to.eql(expected.reference_id);",
+              "});",
+              "",
+              "pm.test(\"Same payment ID as the first response\", () => {",
+              "    pm.expect(payment.id).to.eql(pm.collectionVariables.get(\"payment_id\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
