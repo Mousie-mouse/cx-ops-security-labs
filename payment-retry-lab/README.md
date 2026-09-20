@@ -1,39 +1,44 @@
 # Demonstrating Payment Idempotency with Square Sandbox
 
-A hands-on demonstration of how an idempotency key lets repeated payment
-requests refer to the same operation.
+**What happens when you submit the same payment request more than once?**
 
-**If a payment response goes missing, can you retry without charging twice?**
+I used simulated payments to investigate how an idempotency key connects
+repeated requests to one payment operation. Identical retries returned
+the same payment ID; changing the amount while reusing the key was rejected.
 
-This lab explores that question using simulated payments in Square Sandbox.
-It sends requests, repeats them with the same idempotency key, and records
-the responses in a local SQLite journal.
+My focus is on understanding how code functions within a larger operational
+system: how requests are processed, how outcomes are verified, and what
+evidence someone needs to investigate a problem. This project reflects my
+interest in connecting technical behavior to practical support and
+operations workflows.
+
+Using Python, Postman CLI, and SQLite, I built a repeatable process for
+running the checks and recording the results for inspection.
 
 > **A request attempt is not a payment.** Multiple attempts can refer to
 > one payment operation.
 
-I built this project to better understand how idempotent REST APIs behave.
-I used ChatGPT to help write the Python, SQLite, and Postman integration
-code. All payments are simulated.
+All payments are simulated in Square Sandbox. I used ChatGPT to help write
+the Python, SQLite, and Postman integration code. The emphasis is on
+systems understanding, investigation, and process design -- not the underlying code. 
 
-## ▶ See it run
+## ▶ See the results
 
-![Postman CLI payment retry demonstration](docs/assets/postman-payment-retry.gif)
+![Terminal results showing successful retries and the expected rejection of a changed amount](docs/assets/postman-payment-retry.png)
 
-The demonstration submits a saved payment request, retries it unchanged,
-tries a conflicting amount, and retrieves the original payment.
-
-**The HTTP 400 is expected:** Square rejects the changed amount because
-the request reuses the original idempotency key.
+The identical retry returned the same payment ID. Changing the amount
+while reusing the key produced the expected HTTP 400 rejection.
+All 17 assertions passed.
 
 <details>
-<summary>View the terminal screenshot</summary>
+<summary>Watch the requests run</summary>
 
-![Terminal output showing the payment retry checks](docs/assets/postman-payment-retry.png)
+![Postman CLI payment retry demonstration](docs/assets/postman-payment-retry.gif)
 
 </details>
 
 **Run it yourself:** follow the [runbook](RUNBOOK.md).
+
 
 ## How the lab works
 
@@ -97,17 +102,42 @@ An independent paginated listing returned one distinct payment for each
 reference: `retry-lab-001`, `retry-lab-002`, and `retry-lab-003`, within the
 saved query's location and time window.
 
-### What this means for an investigation
+### What to do when a payment's outcome is unclear
 
-- Persist the operation's key and parameters before sending a payment.
-- If the outcome is unknown, retry that operation with the same key and
-  parameters, subject to the provider's idempotency retention policy.
-- Investigate parameter conflicts. Automatically substituting a new key
-  can create another payment instead of recovering the original one.
-- Follow every pagination cursor before drawing conclusions from a
-  payment list. This lab counts distinct payment IDs.
-- Check both API results and evidence-import results. Passing assertions
-  alone does not establish that the journal was updated.
+If a payment response is missing, the question is: **did the payment fail,
+or did it succeed without the client receiving confirmation?**
+
+- **Keep the original request.** Save its idempotency key and payment
+  details before sending it, so you can retry the same operation.
+
+- **Retry without changing those details.** In this lab, sending the same
+  key and parameters returned the same payment ID. This behavior depends
+  on Square's idempotency retention policy; a key is not an indefinite
+  guarantee against duplicates.
+
+- **Investigate a rejected change.** If the amount changes while the key
+  stays the same, Square rejects the request. Giving it a new key can
+  create a separate payment—it does not recover the original payment.
+
+- **Check every page when listing payments.** The first page may not
+  contain all matching results. Count distinct payment IDs across all
+  pages within the relevant location and time window.
+
+- **Confirm that the evidence was saved.** Successful API checks and a
+  successful journal import are separate results. Check the import
+  summary before assuming the attempts are recorded in SQLite.
+
+In this lab, the original $10 payment succeeds before we test the retries.
+An identical retry succeeds again and returns the same payment ID.
+Changing the amount to $11 while keeping the original key produces the
+expected rejection: the key has already been used for different payment
+details.
+
+That rejection does not mean the original payment failed. It means the
+changed request conflicts with the operation already associated with the
+key. Other errors, such as invalid credentials or a missing response,
+require separate investigation and do not by themselves establish whether
+a payment was accepted.
 
 ### Historical journal snapshot
 
