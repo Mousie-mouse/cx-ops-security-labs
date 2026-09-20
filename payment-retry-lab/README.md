@@ -1,4 +1,4 @@
-#Demonstrating Payment Idempotency with Square Sandbox
+# Demonstrating Payment Idempotency with Square Sandbox
 
 A hands-on demonstration of how an idempotency key lets repeated payment
 requests refer to the same operation.
